@@ -11,14 +11,8 @@ import           Database.Beam.Firebird.ToRow
 import           Database.Beam.Firebird.Ok
 import           Database.Beam.Firebird.Internal
 
---import           Database.SQLite.Simple ( Connection, ToRow(..), FromRow(..)
-  --                                      , SQLData, field
-    --                                    , withStatement, bind, nextRow)
 import           Database.HDBC as O
 import           Database.HDBC.ODBC as O
---import           Database.SQLite.Simple.Internal (RowParser(RP), unRP)
---import           Database.SQLite.Simple.Ok (Ok(..))
---import           Database.SQLite.Simple.Types (Null)
 
 import           Control.Monad.Free.Church
 import           Control.Monad.Reader
@@ -34,6 +28,7 @@ import           Data.String
 
 newtype FirebirdM a = FirebirdM { runFirebirdM :: ReaderT O.Connection IO a }
   deriving (Monad, Functor, Applicative, MonadIO)
+newtype FirebirdConnection = FirebirdConnection { getFirebirdODBCConnection :: O.Connection }
 
 newtype BeamFirebirdParams = BeamFirebirdParams [O.SqlValue]
 instance ToRow BeamFirebirdParams where
@@ -66,7 +61,10 @@ instance FromBackendRow Firebird a => FromRow (BeamFirebirdRow a) where
 runFirebird :: O.Connection -> FirebirdM a -> IO a
 runFirebird conn x = runReaderT (runFirebirdM x) conn
 
-instance MonadBeam FirebirdCommandSyntax Firebird FirebirdM where
+instance MonadBeam FirebirdCommandSyntax Firebird FirebirdConnection FirebirdM where
+  -- TODO debug statements...
+  withDatabaseDebug _ (FirebirdConnection o) action = runFirebird o action
+
   runReturningMany (FirebirdCommandSyntax (FirebirdSyntax cmd vals)) action =
       FirebirdM $ do
         conn <- ask
@@ -80,9 +78,9 @@ instance MonadBeam FirebirdCommandSyntax Firebird FirebirdM where
                runReaderT (runFirebirdM (action nextRow')) conn
 
 
-withStatement :: O.Connection -> String -> (Statement -> IO a) -> IO a 
+withStatement :: O.Connection -> String -> (Statement -> IO a) -> IO a
 withStatement conn qry f =
-  O.prepare conn qry >>= f 
+  O.prepare conn qry >>= f
 
 
 -- | Extracts the next row from the prepared statement.
@@ -93,7 +91,7 @@ nextRowWith :: RowParser r -> Statement -> IO (Maybe r)
 nextRowWith fromRow_ stmt = do
   statRes <- O.fetchRow stmt
   case statRes of
-    Just rowRes -> do     
+    Just rowRes -> do
       let nCols = length rowRes
       row <- convertRow fromRow_ rowRes nCols
       return $ Just row

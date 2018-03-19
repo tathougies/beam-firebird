@@ -102,10 +102,13 @@ instance IsSql92SelectTableSyntax FirebirdSelectTableSyntax where
   type Sql92SelectTableProjectionSyntax FirebirdSelectTableSyntax = FirebirdProjectionSyntax
   type Sql92SelectTableFromSyntax FirebirdSelectTableSyntax = FirebirdFromSyntax
   type Sql92SelectTableGroupingSyntax FirebirdSelectTableSyntax = FirebirdGroupingSyntax
+  type Sql92SelectTableSetQuantifierSyntax FirebirdSelectTableSyntax = FirebirdAggregationSetQuantifierSyntax
 
-  selectTableStmt proj from where_ grouping having =
+  selectTableStmt setQuantifier proj from where_ grouping having =
     FirebirdSelectTableSyntax $
-    emit "SELECT " <> fromFirebirdProjection proj <>
+    emit "SELECT " <>
+    maybe mempty (<> emit " ") (fromFirebirdAggregationSetQuantifier <$> setQuantifier) <>
+    fromFirebirdProjection proj <>
     maybe mempty (emit " FROM " <>) (fromFirebirdFromSyntax <$> from) <>
     maybe mempty (emit " WHERE " <>) (fromFirebirdExpression <$> where_) <>
     maybe mempty (emit " GROUP BY " <>) (fromFirebirdGrouping <$> grouping) <>
@@ -176,6 +179,10 @@ instance IsSql92OrderingSyntax FirebirdOrderingSyntax where
 
 instance HasSqlValueSyntax FirebirdValueSyntax Int where
   sqlValueSyntax i = FirebirdValueSyntax (emitValue (SqlInteger (fromIntegral i)))
+
+instance IsSql92QuantifierSyntax FirebirdComparisonQuantifierSyntax where
+  quantifyOverAll = FirebirdComparisonQuantifierSyntax (emit "ALL")
+  quantifyOverAny = FirebirdComparisonQuantifierSyntax (emit "ANY")
 
 instance IsSql92ExpressionSyntax FirebirdExpressionSyntax where
   type Sql92ExpressionValueSyntax FirebirdExpressionSyntax = FirebirdValueSyntax
@@ -318,7 +325,7 @@ instance IsSql92DeleteSyntax FirebirdDeleteSyntax where
     maybe mempty (\where_ -> emit " WHERE " <> fromFirebirdExpression where_) where_
 
 spaces, parens :: FirebirdSyntax -> FirebirdSyntax
-spaces a = emit " " <> a <> emit " " 
+spaces a = emit " " <> a <> emit " "
 parens a = emit "(" <> a <> emit ")"
 
 commas :: [FirebirdSyntax] -> FirebirdSyntax

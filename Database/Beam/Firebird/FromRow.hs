@@ -65,20 +65,20 @@ type FieldParser a = Field -> Ok a
 -- | A type that may be converted from a SQL type.
 class (Typeable a, Convertible O.SqlValue a) => FromField a where
   fromField :: FieldParser a
-  fromField f@(Field sqlVal _) = 
-    case safeConvert sqlVal of 
+  fromField f@(Field sqlVal _) =
+    case safeConvert sqlVal of
       Left (ConvertError _ _ _ msg) -> returnError ConversionFailed f msg
       Right v -> Ok v
 
-instance Convertible O.SqlValue Null where 
+instance Convertible O.SqlValue Null where
   safeConvert O.SqlNull = return Null
 
 instance FromField Null where
   fromField (Field O.SqlNull _) = pure Null
   fromField f                   = returnError ConversionFailed f "data is not null"
-instance FromField Bool 
+instance FromField Bool
 instance FromField Double
-instance FromField Int 
+instance FromField Int
 instance FromField Int32
 instance FromField Int64
 instance FromField Integer

@@ -1,10 +1,8 @@
-flags: {}
-extra-package-dbs: []
+resolver: lts-10.3
 packages:
 - '.'
-- ../beam-migrate
-- ../beam-core
+- ../beam/beam-migrate
+- ../beam/beam-core
 extra-deps:
 - HDBC-odbc-2.5.0.1
 - concurrent-extra-0.7.0.10
-resolver: lts-8.5

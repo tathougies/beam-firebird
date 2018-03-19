@@ -14,11 +14,8 @@ import           Data.Time (UTCTime, LocalTime, Day, utcToLocalTime, utc)
 import           Data.Word (Word32, Word64)
 
 import           Database.Beam.Firebird.FromRow
---import qualified Database.SQLite.Simple.FromField as Sql
---import qualified Database.SQLite.Simple.Types as Sql
 
 data Firebird = Firebird
-
 
 instance BeamBackend Firebird where
   type BackendFromField Firebird = FromField
@@ -53,4 +50,3 @@ instance FromBackendRow Firebird LocalTime where
 
 instance BeamSqlBackend Firebird
 instance BeamSql92Backend Firebird
-
